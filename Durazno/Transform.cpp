@@ -193,6 +193,13 @@ void __fastcall TransformAnalog(s16 &X, s16 &Y, SETTINGS &set, bool leftStick)
 	Y = s16(fY < -32767.0 ? -32767 : fY > 32767.0 ? 32767 : fY);
 }
 
+void __fastcall ScaleAnalog(s16 &axis)
+{
+	// Camera speed jumps and caps at 22282, so scale 0-32767 to 0-22281
+	f64 fAxis = abs(axis) / analogmax * 22281.0;
+	axis = s16(axis < 0 ? -fAxis : fAxis);
+}
+
 inline WORD Clamp(f64 input)
 {
 	u32 result = (u32) input;
@@ -217,6 +224,13 @@ void __fastcall TransformGetState(SETTINGS &settings, XINPUT_STATE* pState)
 {
 	TransformAnalog(pState->Gamepad.sThumbLX, pState->Gamepad.sThumbLY, settings, true);
 	TransformAnalog(pState->Gamepad.sThumbRX, pState->Gamepad.sThumbRY, settings, false);
+
+	// Full range is needed to switch targets, so disable scaling behavior while left stick is clicked
+	if (!(pState->Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB))
+	{
+		ScaleAnalog(pState->Gamepad.sThumbRX);
+		ScaleAnalog(pState->Gamepad.sThumbRY);
+	}
 
 	TriggerRange(pState->Gamepad.bLeftTrigger,  settings.triggerL);
 	TriggerRange(pState->Gamepad.bRightTrigger, settings.triggerR);
